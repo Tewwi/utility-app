@@ -364,6 +364,7 @@ export function usePdfWordSearch() {
   }, []);
 
   const clearErrors = useCallback(() => setErrors([]), []);
+  const clearTermWarnings = useCallback(() => setTermWarnings([]), []);
 
   return {
     files,
@@ -386,6 +387,7 @@ export function usePdfWordSearch() {
     runSearch,
     reset,
     clearErrors,
+    clearTermWarnings,
     termWarnings,
     isProcessing: progress.isProcessing,
   };

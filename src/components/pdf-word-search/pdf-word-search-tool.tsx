@@ -1,6 +1,6 @@
 "use client";
 
-import { FileSearch, Play, RotateCcw, X } from "lucide-react";
+import { Copy, Download, FileSearch, Play, RotateCcw, X } from "lucide-react";
 import { usePdfWordSearch } from "@/hooks/use-pdf-word-search";
 import { PdfUploadPanel } from "./pdf-upload-panel";
 import { SearchTermsPanel } from "./search-terms-panel";
@@ -8,6 +8,12 @@ import { PdfProcessingStatus } from "./pdf-processing-status";
 import { PdfSummaryPanel } from "./pdf-summary-panel";
 import { SearchResultsTable } from "./search-results-table";
 import { FileResultsTable } from "./file-results-table";
+import {
+  generateResultsCsv,
+  generateFileDetailCsv,
+  downloadCsv,
+  copyToClipboard,
+} from "@/lib/pdf-word-search/export-results";
 
 type PdfWordSearchToolProps = {
   utility: {
@@ -44,6 +50,7 @@ export function PdfWordSearchTool({
     runSearch,
     reset,
     clearErrors,
+    clearTermWarnings,
     isProcessing,
   } = usePdfWordSearch();
 
@@ -167,7 +174,7 @@ export function PdfWordSearchTool({
               options={options}
               onOptionsChange={setOptions}
               termWarnings={termWarnings}
-              onClearWarnings={() => {}}
+              onClearWarnings={clearTermWarnings}
               disabled={isProcessing}
             />
           </div>
@@ -177,6 +184,50 @@ export function PdfWordSearchTool({
       {/* Results */}
       {hasRun && results.length > 0 && (
         <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-heading text-base font-semibold text-foreground">
+              Results
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => copyToClipboard(generateResultsCsv(results))}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium transition-colors hover:bg-accent"
+                aria-label="Copy results as CSV"
+              >
+                <Copy className="size-3.5" aria-hidden="true" />
+                Copy CSV
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  downloadCsv(
+                    generateResultsCsv(results),
+                    "pdf-word-search-results.csv",
+                  )
+                }
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium transition-colors hover:bg-accent"
+                aria-label="Download results CSV"
+              >
+                <Download className="size-3.5" aria-hidden="true" />
+                Summary CSV
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  downloadCsv(
+                    generateFileDetailCsv(results),
+                    "pdf-word-search-by-file.csv",
+                  )
+                }
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium transition-colors hover:bg-accent"
+                aria-label="Download detail CSV"
+              >
+                <Download className="size-3.5" aria-hidden="true" />
+                Detail CSV
+              </button>
+            </div>
+          </div>
           <SearchResultsTable results={results} />
           <FileResultsTable results={results} />
         </section>
