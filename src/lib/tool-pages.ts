@@ -2,7 +2,8 @@ export const toolPages = {
   qr: {
     href: "/tools/qr",
     inputTitle: "QR content",
-    inputPlaceholder: "Paste a URL, text, email, phone number, or contact payload.",
+    inputPlaceholder:
+      "Paste a URL, text, email, phone number, or contact payload.",
     outputTitle: "QR preview",
     outputPreview:
       "QR preview will render here.\n\nPayload type: Auto detect\nError correction: Medium\nExport: PNG / SVG",
@@ -18,6 +19,14 @@ export const toolPages = {
       "Supports src attributes, direct video URLs, and escaped JSON-style URLs.",
       "Recognizes mp4, webm, mov, m4v, m3u8, and data:video sources.",
       "Duplicate links are collapsed before rendering the previews.",
+    ],
+  },
+  pdfWordSearch: {
+    href: "/tools/pdf-word-search",
+    details: [
+      "Supports up to 5 PDF files with text layer or OCR (tesseract.js).",
+      "Search multiple words or phrases at once; results are aggregated across all files.",
+      "All processing happens client-side; no files are uploaded to a server.",
     ],
   },
 } as const;

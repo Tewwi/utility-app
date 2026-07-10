@@ -1,0 +1,12 @@
+export { extractPdfText } from "./extract-pdf-text";
+export { extractScannedPageText } from "./extract-scanned-page-text";
+export { countSearchTerms } from "./count-search-terms";
+export { createPdfFileRecord } from "./create-pdf-file-record";
+export { normalizeSearchTerms } from "./normalize-search-term";
+export { normalizeSearchText } from "./normalize-search-text";
+export { buildSearchRegex } from "./build-search-regex";
+export { buildSearchTermPattern } from "./build-search-term-pattern";
+export { escapeRegex } from "./escape-regex";
+export { formatFileSize } from "./format-file-size";
+export { formatPageRanges } from "./format-page-ranges";
+export type * from "./types";
