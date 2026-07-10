@@ -51,6 +51,7 @@ export function usePdfWordSearch() {
   const [allPages, setAllPages] = useState<PdfPageText[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [termWarnings, setTermWarnings] = useState<string[]>([]);
+  const [searchedTerms, setSearchedTerms] = useState<string[]>([]);
   const [hasRun, setHasRun] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -170,6 +171,7 @@ export function usePdfWordSearch() {
     setResults([]);
     setAllPages([]);
     setErrors([]);
+    setSearchedTerms(normalized);
     setHasRun(false);
 
     setProgress({
@@ -360,6 +362,7 @@ export function usePdfWordSearch() {
     setAllPages([]);
     setErrors([]);
     setTermWarnings([]);
+    setSearchedTerms([]);
     setHasRun(false);
   }, []);
 
@@ -389,6 +392,7 @@ export function usePdfWordSearch() {
     clearErrors,
     clearTermWarnings,
     termWarnings,
+    searchedTerms,
     isProcessing: progress.isProcessing,
   };
 }

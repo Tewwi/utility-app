@@ -40,6 +40,7 @@ export function PdfWordSearchTool({
     errors,
     hasRun,
     termWarnings,
+    searchedTerms,
     totalFiles,
     totalPages,
     totalChars,
@@ -191,7 +192,9 @@ export function PdfWordSearchTool({
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => copyToClipboard(generateResultsCsv(results))}
+                onClick={() =>
+                  copyToClipboard(generateResultsCsv(results, searchedTerms))
+                }
                 className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium transition-colors hover:bg-accent"
                 aria-label="Copy results as CSV"
               >
@@ -202,7 +205,7 @@ export function PdfWordSearchTool({
                 type="button"
                 onClick={() =>
                   downloadCsv(
-                    generateResultsCsv(results),
+                    generateResultsCsv(results, searchedTerms),
                     "pdf-word-search-results.csv",
                   )
                 }
@@ -216,7 +219,7 @@ export function PdfWordSearchTool({
                 type="button"
                 onClick={() =>
                   downloadCsv(
-                    generateFileDetailCsv(results),
+                    generateFileDetailCsv(results, searchedTerms),
                     "pdf-word-search-by-file.csv",
                   )
                 }

@@ -8,10 +8,19 @@ function escapeCsv(value: string): string {
   return value;
 }
 
-export function generateResultsCsv(results: SearchTermResult[]): string {
+export function generateResultsCsv(
+  results: SearchTermResult[],
+  allSearchedTerms: string[],
+): string {
   const header = "Term,Count,Files,Pages,Share";
+  const resultMap = new Map(results.map((r) => [r.term, r]));
 
-  const rows = results.map((r) => {
+  const rows = allSearchedTerms.map((term) => {
+    const r = resultMap.get(term);
+    if (!r) {
+      return [escapeCsv(term), 0, 0, "", "0%"].join(",");
+    }
+
     const pagesStr = r.matchesByFile
       .map((m) => `${m.fileName}: ${formatPageRanges(m.pages)}`)
       .join("; ");
@@ -27,17 +36,26 @@ export function generateResultsCsv(results: SearchTermResult[]): string {
   return [header, ...rows].join("\n");
 }
 
-export function generateFileDetailCsv(results: SearchTermResult[]): string {
+export function generateFileDetailCsv(
+  results: SearchTermResult[],
+  allSearchedTerms: string[],
+): string {
   const header = "File,Term,Count,Pages";
+  const resultMap = new Map(results.map((r) => [r.term, r]));
 
   const rows: string[] = [];
 
-  for (const result of results) {
-    for (const fileResult of result.matchesByFile) {
+  for (const term of allSearchedTerms) {
+    const r = resultMap.get(term);
+    if (!r) {
+      rows.push([escapeCsv("(all files)"), escapeCsv(term), 0, ""].join(","));
+      continue;
+    }
+    for (const fileResult of r.matchesByFile) {
       rows.push(
         [
           escapeCsv(fileResult.fileName),
-          escapeCsv(result.term),
+          escapeCsv(r.term),
           fileResult.count,
           escapeCsv(formatPageRanges(fileResult.pages)),
         ].join(","),
