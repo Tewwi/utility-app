@@ -8,28 +8,21 @@ function escapeCsv(value: string): string {
   return value;
 }
 
-export function generateResultsCsv(
-  results: SearchTermResult[],
-  allSearchedTerms: string[],
-): string {
-  const header = "Term,Count,Files,Pages,Share";
-  const resultMap = new Map(results.map((r) => [r.term, r]));
-
-  const rows = allSearchedTerms.map((term) => {
-    const r = resultMap.get(term);
-    if (!r) {
-      return [escapeCsv(term), 0, 0, "", "0%"].join(",");
-    }
-
-    const pagesStr = r.matchesByFile
+export function generateResultsCsv(results: SearchTermResult[]): string {
+  const header =
+    "Term,Case Sensitive,Whole Word,Count,Files,Pages,Share";
+  const rows = results.map((result) => {
+    const pagesStr = result.matchesByFile
       .map((m) => `${m.fileName}: ${formatPageRanges(m.pages)}`)
       .join("; ");
     return [
-      escapeCsv(r.term),
-      r.count,
-      r.fileCount,
+      escapeCsv(result.term),
+      result.caseSensitive ? "Yes" : "No",
+      result.wholeWord ? "Yes" : "No",
+      result.count,
+      result.fileCount,
       escapeCsv(pagesStr),
-      `${r.percentage}%`,
+      `${result.percentage}%`,
     ].join(",");
   });
 
@@ -38,24 +31,32 @@ export function generateResultsCsv(
 
 export function generateFileDetailCsv(
   results: SearchTermResult[],
-  allSearchedTerms: string[],
 ): string {
-  const header = "File,Term,Count,Pages";
-  const resultMap = new Map(results.map((r) => [r.term, r]));
+  const header = "File,Term,Case Sensitive,Whole Word,Count,Pages";
 
   const rows: string[] = [];
 
-  for (const term of allSearchedTerms) {
-    const r = resultMap.get(term);
-    if (!r) {
-      rows.push([escapeCsv("(all files)"), escapeCsv(term), 0, ""].join(","));
+  for (const result of results) {
+    if (result.matchesByFile.length === 0) {
+      rows.push(
+        [
+          escapeCsv("(all files)"),
+          escapeCsv(result.term),
+          result.caseSensitive ? "Yes" : "No",
+          result.wholeWord ? "Yes" : "No",
+          0,
+          "",
+        ].join(","),
+      );
       continue;
     }
-    for (const fileResult of r.matchesByFile) {
+    for (const fileResult of result.matchesByFile) {
       rows.push(
         [
           escapeCsv(fileResult.fileName),
-          escapeCsv(r.term),
+          escapeCsv(result.term),
+          result.caseSensitive ? "Yes" : "No",
+          result.wholeWord ? "Yes" : "No",
           fileResult.count,
           escapeCsv(formatPageRanges(fileResult.pages)),
         ].join(","),

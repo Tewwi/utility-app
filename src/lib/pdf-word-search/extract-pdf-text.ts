@@ -1,4 +1,5 @@
 import type { PdfPageText } from "./types";
+import { isInvisibleTextScan } from "./is-invisible-text-scan";
 
 export async function extractPdfText(
   file: File,
@@ -28,7 +29,10 @@ export async function extractPdfText(
     if (abortSignal?.aborted) throw new DOMException("Aborted", "AbortError");
 
     const page = await pdf.getPage(i);
-    const textContent = await page.getTextContent();
+    const [textContent, operatorList] = await Promise.all([
+      page.getTextContent(),
+      page.getOperatorList(),
+    ]);
     const text = textContent.items
       .map((item) => ("str" in item ? item.str : ""))
       .join(" ");
@@ -39,6 +43,7 @@ export async function extractPdfText(
       pageNumber: i,
       text,
       source: "text-layer",
+      requiresOcr: isInvisibleTextScan(operatorList, pdfjsLib.OPS),
     });
   }
 

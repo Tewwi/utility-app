@@ -31,8 +31,7 @@ export function PdfWordSearchTool({
 }: PdfWordSearchToolProps) {
   const {
     files,
-    searchTerms,
-    setSearchTerms,
+    searchTermGroups,
     options,
     setOptions,
     progress,
@@ -40,7 +39,6 @@ export function PdfWordSearchTool({
     errors,
     hasRun,
     termWarnings,
-    searchedTerms,
     totalFiles,
     totalPages,
     totalChars,
@@ -48,6 +46,9 @@ export function PdfWordSearchTool({
     totalMatches,
     addFiles,
     removeFile,
+    addSearchTermGroup,
+    updateSearchTermGroup,
+    removeSearchTermGroup,
     runSearch,
     reset,
     clearErrors,
@@ -170,8 +171,10 @@ export function PdfWordSearchTool({
           </div>
           <div className="mt-4">
             <SearchTermsPanel
-              searchTerms={searchTerms}
-              onSearchTermsChange={setSearchTerms}
+              groups={searchTermGroups}
+              onAddGroup={addSearchTermGroup}
+              onUpdateGroup={updateSearchTermGroup}
+              onRemoveGroup={removeSearchTermGroup}
               options={options}
               onOptionsChange={setOptions}
               termWarnings={termWarnings}
@@ -193,7 +196,7 @@ export function PdfWordSearchTool({
               <button
                 type="button"
                 onClick={() =>
-                  copyToClipboard(generateResultsCsv(results, searchedTerms))
+                  copyToClipboard(generateResultsCsv(results))
                 }
                 className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-xs font-medium transition-colors hover:bg-accent"
                 aria-label="Copy results as CSV"
@@ -205,7 +208,7 @@ export function PdfWordSearchTool({
                 type="button"
                 onClick={() =>
                   downloadCsv(
-                    generateResultsCsv(results, searchedTerms),
+                    generateResultsCsv(results),
                     "pdf-word-search-results.csv",
                   )
                 }
@@ -219,7 +222,7 @@ export function PdfWordSearchTool({
                 type="button"
                 onClick={() =>
                   downloadCsv(
-                    generateFileDetailCsv(results, searchedTerms),
+                    generateFileDetailCsv(results),
                     "pdf-word-search-by-file.csv",
                   )
                 }

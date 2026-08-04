@@ -7,6 +7,7 @@ import { buildSearchRegex } from "./build-search-regex";
 import { normalizeSearchText } from "./normalize-search-text";
 
 type CountOptions = {
+  groupId: string;
   caseSensitive: boolean;
   wholeWord: boolean;
 };
@@ -18,9 +19,7 @@ export function countSearchTerms(
 ): SearchTermResult[] {
   if (terms.length === 0 || pages.length === 0) return [];
 
-  const totalMatches = new Map<string, number>();
-
-  const results: SearchTermResult[] = terms.map((term) => {
+  return terms.map((term, termIndex) => {
     const regex = buildSearchRegex(term, options);
     const fileMatches = new Map<
       string,
@@ -56,25 +55,16 @@ export function countSearchTerms(
     }
 
     matchesByFile.sort((a, b) => b.count - a.count);
-    totalMatches.set(term, termTotal);
-
     return {
+      id: `${options.groupId}:${termIndex}`,
+      groupId: options.groupId,
       term,
+      caseSensitive: options.caseSensitive,
+      wholeWord: options.wholeWord,
       count: termTotal,
       fileCount: matchesByFile.length,
       matchesByFile,
       percentage: 0,
     };
   });
-
-  const grandTotal = results.reduce((sum, r) => sum + r.count, 0);
-
-  for (const result of results) {
-    result.percentage =
-      grandTotal > 0 ? Math.round((result.count / grandTotal) * 100) : 0;
-  }
-
-  results.sort((a, b) => b.count - a.count);
-
-  return results;
 }

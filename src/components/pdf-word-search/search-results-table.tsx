@@ -36,11 +36,16 @@ export function SearchResultsTable({ results }: SearchResultsTableProps) {
           <tbody>
             {results.map((result) => (
               <tr
-                key={result.term}
+                key={result.id}
                 className="border-b border-border last:border-0"
               >
                 <td className="px-4 py-2.5 font-medium text-foreground">
-                  {result.term}
+                  <div>{result.term}</div>
+                  <div className="mt-0.5 text-[11px] font-normal text-muted-foreground">
+                    {result.caseSensitive ? "Case sensitive" : "Ignore case"}
+                    {" / "}
+                    {result.wholeWord ? "Whole word" : "Partial match"}
+                  </div>
                 </td>
                 <td className="px-4 py-2.5 text-foreground">{result.count}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">

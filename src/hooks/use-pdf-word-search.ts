@@ -5,12 +5,15 @@ import type {
   PdfFileRecord,
   PdfPageText,
   PdfWordSearchOptions,
+  SearchTermGroup,
   SearchTermResult,
 } from "@/lib/pdf-word-search/types";
 import { createPdfFileRecord } from "@/lib/pdf-word-search/create-pdf-file-record";
 import { extractPdfText } from "@/lib/pdf-word-search/extract-pdf-text";
 import { extractScannedPageText } from "@/lib/pdf-word-search/extract-scanned-page-text";
-import { countSearchTerms } from "@/lib/pdf-word-search/count-search-terms";
+import { createOcrWorker } from "@/lib/pdf-word-search/create-ocr-worker";
+import { countSearchTermGroups } from "@/lib/pdf-word-search/count-search-term-groups";
+import { createSearchTermGroup } from "@/lib/pdf-word-search/create-search-term-group";
 import {
   MAX_TERM_LENGTH,
   normalizeSearchTerms,
@@ -36,10 +39,10 @@ export type ProcessingState = {
 
 export function usePdfWordSearch() {
   const [files, setFiles] = useState<PdfFileRecord[]>([]);
-  const [searchTerms, setSearchTerms] = useState("");
+  const [searchTermGroups, setSearchTermGroups] = useState<SearchTermGroup[]>(
+    () => [createSearchTermGroup()],
+  );
   const [options, setOptions] = useState<PdfWordSearchOptions>({
-    caseSensitive: false,
-    wholeWord: false,
     enableOcr: false,
     ocrLanguages: ["eng"],
   });
@@ -51,7 +54,6 @@ export function usePdfWordSearch() {
   const [allPages, setAllPages] = useState<PdfPageText[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [termWarnings, setTermWarnings] = useState<string[]>([]);
-  const [searchedTerms, setSearchedTerms] = useState<string[]>([]);
   const [hasRun, setHasRun] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -114,6 +116,28 @@ export function usePdfWordSearch() {
     setHasRun(false);
   }, []);
 
+  const addSearchTermGroup = useCallback(() => {
+    setSearchTermGroups((previous) => [...previous, createSearchTermGroup()]);
+  }, []);
+
+  const updateSearchTermGroup = useCallback(
+    (id: string, updates: Partial<Omit<SearchTermGroup, "id">>) => {
+      setSearchTermGroups((previous) =>
+        previous.map((group) =>
+          group.id === id ? { ...group, ...updates } : group,
+        ),
+      );
+    },
+    [],
+  );
+
+  const removeSearchTermGroup = useCallback((id: string) => {
+    setSearchTermGroups((previous) => {
+      if (previous.length === 1) return previous;
+      return previous.filter((group) => group.id !== id);
+    });
+  }, []);
+
   const updateFileStatus = useCallback(
     (id: string, status: PdfFileRecord["status"], error?: string) => {
       setFiles((prev) =>
@@ -143,8 +167,17 @@ export function usePdfWordSearch() {
   );
 
   const runSearch = useCallback(async () => {
-    const { terms: normalized, longTerms } = normalizeSearchTerms(searchTerms);
-    if (normalized.length === 0) {
+    const normalizedGroups = searchTermGroups.map((group) => {
+      const { terms, longTerms } = normalizeSearchTerms(group.searchTerms);
+
+      return { ...group, terms, longTerms };
+    });
+    const searchableGroups = normalizedGroups.filter(
+      (group) => group.terms.length > 0,
+    );
+    const longTerms = normalizedGroups.flatMap((group) => group.longTerms);
+
+    if (searchableGroups.length === 0) {
       setErrors((prev) => [...prev, "Please enter at least one search term."]);
       return;
     }
@@ -171,7 +204,6 @@ export function usePdfWordSearch() {
     setResults([]);
     setAllPages([]);
     setErrors([]);
-    setSearchedTerms(normalized);
     setHasRun(false);
 
     setProgress({
@@ -187,6 +219,7 @@ export function usePdfWordSearch() {
 
     const allPageTexts: PdfPageText[] = [];
     const ocrPageKeys = new Set<string>();
+    let ocrWorker: Awaited<ReturnType<typeof createOcrWorker>> | null = null;
 
     try {
       for (const file of files) {
@@ -213,7 +246,8 @@ export function usePdfWordSearch() {
 
           if (
             options.enableOcr &&
-            page.text.trim().length < OCR_TEXT_THRESHOLD
+            (page.requiresOcr ||
+              page.text.trim().length < OCR_TEXT_THRESHOLD)
           ) {
             pagesToOcr.push(page.pageNumber);
           } else {
@@ -229,6 +263,7 @@ export function usePdfWordSearch() {
             if (signal.aborted) break;
 
             updateProcessingFile(file.id, { currentPage: pageNum });
+            ocrWorker ??= await createOcrWorker(options.ocrLanguages);
 
             const ocrText = await extractScannedPageText(
               file.file,
@@ -237,6 +272,7 @@ export function usePdfWordSearch() {
               pageNum,
               options.ocrLanguages,
               signal,
+              ocrWorker,
             );
 
             ocrPageKeys.add(`${file.id}:${pageNum}`);
@@ -256,10 +292,7 @@ export function usePdfWordSearch() {
 
       setAllPages(allPageTexts);
 
-      let counted = countSearchTerms(normalized, allPageTexts, {
-        caseSensitive: options.caseSensitive,
-        wholeWord: options.wholeWord,
-      });
+      let counted = countSearchTermGroups(searchableGroups, allPageTexts);
 
       const foundInitialMatches = counted.some((result) => result.count > 0);
 
@@ -296,6 +329,7 @@ export function usePdfWordSearch() {
               updateProcessingFile(file.id, {
                 currentPage: index + 1,
               });
+              ocrWorker ??= await createOcrWorker(options.ocrLanguages);
 
               const ocrText = await extractScannedPageText(
                 file.file,
@@ -304,6 +338,7 @@ export function usePdfWordSearch() {
                 page.pageNumber,
                 options.ocrLanguages,
                 signal,
+                ocrWorker,
               );
 
               ocrPageKeys.add(`${file.id}:${page.pageNumber}`);
@@ -326,10 +361,7 @@ export function usePdfWordSearch() {
             }
           }
 
-          counted = countSearchTerms(normalized, allPageTexts, {
-            caseSensitive: options.caseSensitive,
-            wholeWord: options.wholeWord,
-          });
+          counted = countSearchTermGroups(searchableGroups, allPageTexts);
           setAllPages([...allPageTexts]);
         }
       }
@@ -343,17 +375,22 @@ export function usePdfWordSearch() {
         err instanceof Error ? err.message : "An unexpected error occurred.";
       setErrors((prev) => [...prev, message]);
     } finally {
+      await ocrWorker?.terminate().catch(() => undefined);
       setProgress({ isProcessing: false, files: [] });
     }
-  }, [files, searchTerms, options, updateFileStatus, updateProcessingFile]);
+  }, [
+    files,
+    searchTermGroups,
+    options,
+    updateFileStatus,
+    updateProcessingFile,
+  ]);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
     setFiles([]);
-    setSearchTerms("");
+    setSearchTermGroups([createSearchTermGroup()]);
     setOptions({
-      caseSensitive: false,
-      wholeWord: false,
       enableOcr: false,
       ocrLanguages: ["eng"],
     });
@@ -362,7 +399,6 @@ export function usePdfWordSearch() {
     setAllPages([]);
     setErrors([]);
     setTermWarnings([]);
-    setSearchedTerms([]);
     setHasRun(false);
   }, []);
 
@@ -371,8 +407,7 @@ export function usePdfWordSearch() {
 
   return {
     files,
-    searchTerms,
-    setSearchTerms,
+    searchTermGroups,
     options,
     setOptions,
     progress,
@@ -387,12 +422,14 @@ export function usePdfWordSearch() {
     totalMatches,
     addFiles,
     removeFile,
+    addSearchTermGroup,
+    updateSearchTermGroup,
+    removeSearchTermGroup,
     runSearch,
     reset,
     clearErrors,
     clearTermWarnings,
     termWarnings,
-    searchedTerms,
     isProcessing: progress.isProcessing,
   };
 }

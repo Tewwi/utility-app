@@ -1,8 +1,17 @@
 export type PdfWordSearchOptions = {
-  caseSensitive: boolean;
-  wholeWord: boolean;
   enableOcr: boolean;
   ocrLanguages: string[];
+};
+
+export type SearchTermGroup = {
+  id: string;
+  searchTerms: string;
+  caseSensitive: boolean;
+  wholeWord: boolean;
+};
+
+export type CountSearchTermGroup = Omit<SearchTermGroup, "searchTerms"> & {
+  terms: string[];
 };
 
 export type PdfFileRecord = {
@@ -20,10 +29,15 @@ export type PdfPageText = {
   pageNumber: number;
   text: string;
   source: "text-layer" | "ocr";
+  requiresOcr?: boolean;
 };
 
 export type SearchTermResult = {
+  id: string;
+  groupId: string;
   term: string;
+  caseSensitive: boolean;
+  wholeWord: boolean;
   count: number;
   fileCount: number;
   matchesByFile: SearchTermFileResult[];

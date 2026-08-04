@@ -1,10 +1,19 @@
 "use client";
 
-import type { PdfWordSearchOptions } from "@/lib/pdf-word-search/types";
+import { Plus, Trash2 } from "lucide-react";
+import type {
+  PdfWordSearchOptions,
+  SearchTermGroup,
+} from "@/lib/pdf-word-search/types";
 
 type SearchTermsPanelProps = {
-  searchTerms: string;
-  onSearchTermsChange: (value: string) => void;
+  groups: SearchTermGroup[];
+  onAddGroup: () => void;
+  onUpdateGroup: (
+    id: string,
+    updates: Partial<Omit<SearchTermGroup, "id">>,
+  ) => void;
+  onRemoveGroup: (id: string) => void;
   options: PdfWordSearchOptions;
   onOptionsChange: (options: PdfWordSearchOptions) => void;
   termWarnings: string[];
@@ -13,8 +22,10 @@ type SearchTermsPanelProps = {
 };
 
 export function SearchTermsPanel({
-  searchTerms,
-  onSearchTermsChange,
+  groups,
+  onAddGroup,
+  onUpdateGroup,
+  onRemoveGroup,
   options,
   onOptionsChange,
   termWarnings,
@@ -26,97 +37,133 @@ export function SearchTermsPanel({
     { value: "vie", label: "Vietnamese" },
   ];
 
-  function toggleOption(key: keyof PdfWordSearchOptions) {
-    if (key === "ocrLanguages") return;
-    onOptionsChange({ ...options, [key]: !options[key as never] });
-  }
+  function toggleOcrLanguage(language: string) {
+    const nextLanguages = options.ocrLanguages.includes(language)
+      ? options.ocrLanguages.filter((item) => item !== language)
+      : [...options.ocrLanguages, language];
 
-  function toggleOcrLanguage(lang: string) {
-    const current = options.ocrLanguages;
-    const next = current.includes(lang)
-      ? current.filter((l) => l !== lang)
-      : [...current, lang];
-    onOptionsChange({ ...options, ocrLanguages: next });
+    onOptionsChange({ ...options, ocrLanguages: nextLanguages });
   }
 
   return (
     <div className="space-y-4">
-      <div>
-        <label
-          htmlFor="search-terms"
-          className="mb-2 block text-sm font-medium text-foreground"
-        >
-          Search terms
-        </label>
-        <textarea
-          id="search-terms"
-          value={searchTerms}
-          onChange={(e) => onSearchTermsChange(e.target.value)}
-          placeholder="Enter words or phrases, one per line&#10;e.g.&#10;budget&#10;Q4 report&#10;revenue growth"
-          className="min-h-[120px] w-full resize-y rounded-md border border-input bg-background p-3 font-mono text-sm leading-6 outline-none placeholder:text-muted-foreground focus:border-ring"
-          disabled={disabled}
-        />
-        <p className="mt-1 text-xs text-muted-foreground">
-          {searchTerms.trim()
-            ? searchTerms.trim().split("\n").filter(Boolean).length
-            : 0}{" "}
-          unique term(s)
-        </p>
+      <div className="space-y-3">
+        {groups.map((group, index) => {
+          const textareaId = `search-terms-${group.id}`;
+          const termCount = group.searchTerms.trim()
+            ? group.searchTerms.trim().split("\n").filter(Boolean).length
+            : 0;
 
-        {termWarnings.length > 0 && (
-          <div className="mt-2 space-y-1">
-            {termWarnings.map((w, i) => (
-              <p
-                key={i}
-                className="flex items-start gap-1.5 text-xs text-destructive"
-              >
-                <span className="mt-0.5 shrink-0">⚠</span>
-                <span>{w}</span>
-              </p>
-            ))}
-            <button
-              type="button"
-              onClick={onClearWarnings}
-              className="text-xs text-muted-foreground underline hover:text-foreground"
+          return (
+            <fieldset
+              key={group.id}
+              className="space-y-3 rounded-md border border-border bg-muted/20 p-3"
             >
-              Dismiss
-            </button>
-          </div>
-        )}
+              <div className="flex items-center justify-between gap-3">
+                <label
+                  htmlFor={textareaId}
+                  className="text-sm font-medium text-foreground"
+                >
+                  Term group {index + 1}
+                </label>
+                <button
+                  type="button"
+                  onClick={() => onRemoveGroup(group.id)}
+                  disabled={disabled || groups.length === 1}
+                  className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label={`Remove term group ${index + 1}`}
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </button>
+              </div>
+
+              <textarea
+                id={textareaId}
+                value={group.searchTerms}
+                onChange={(event) =>
+                  onUpdateGroup(group.id, { searchTerms: event.target.value })
+                }
+                placeholder="Enter words or phrases, one per line"
+                className="min-h-[104px] w-full resize-y rounded-md border border-input bg-background p-3 font-mono text-sm leading-6 outline-none placeholder:text-muted-foreground focus:border-ring"
+                disabled={disabled}
+              />
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="text-xs text-muted-foreground">
+                  {termCount} term(s)
+                </span>
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={group.caseSensitive}
+                    onChange={() =>
+                      onUpdateGroup(group.id, {
+                        caseSensitive: !group.caseSensitive,
+                      })
+                    }
+                    disabled={disabled}
+                    className="size-4 rounded border-input text-primary focus:ring-ring"
+                  />
+                  Case sensitive
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={group.wholeWord}
+                    onChange={() =>
+                      onUpdateGroup(group.id, { wholeWord: !group.wholeWord })
+                    }
+                    disabled={disabled}
+                    className="size-4 rounded border-input text-primary focus:ring-ring"
+                  />
+                  Match whole word
+                </label>
+              </div>
+            </fieldset>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={onAddGroup}
+          disabled={disabled}
+          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background px-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Add term group
+        </button>
       </div>
 
+      {termWarnings.length > 0 && (
+        <div className="space-y-1">
+          {termWarnings.map((warning, index) => (
+            <p
+              key={`${warning}-${index}`}
+              className="flex items-start gap-1.5 text-xs text-destructive"
+            >
+              <span>{warning}</span>
+            </p>
+          ))}
+          <button
+            type="button"
+            onClick={onClearWarnings}
+            className="text-xs text-muted-foreground underline hover:text-foreground"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="space-y-3 rounded-md border border-border bg-muted/30 p-3">
-        <p className="text-xs font-medium text-muted-foreground">
-          Search options
-        </p>
-
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={options.caseSensitive}
-            onChange={() => toggleOption("caseSensitive")}
-            disabled={disabled}
-            className="size-4 rounded border-input text-primary focus:ring-ring"
-          />
-          Case sensitive
-        </label>
-
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={options.wholeWord}
-            onChange={() => toggleOption("wholeWord")}
-            disabled={disabled}
-            className="size-4 rounded border-input text-primary focus:ring-ring"
-          />
-          Match whole word
-        </label>
+        <p className="text-xs font-medium text-muted-foreground">OCR options</p>
 
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={options.enableOcr}
-            onChange={() => toggleOption("enableOcr")}
+            onChange={() =>
+              onOptionsChange({ ...options, enableOcr: !options.enableOcr })
+            }
             disabled={disabled}
             className="size-4 rounded border-input text-primary focus:ring-ring"
           />
@@ -128,19 +175,19 @@ export function SearchTermsPanel({
             <legend className="text-sm text-muted-foreground">
               OCR languages:
             </legend>
-            {languages.map((lang) => (
+            {languages.map((language) => (
               <label
-                key={lang.value}
+                key={language.value}
                 className="flex items-center gap-2 text-sm"
               >
                 <input
                   type="checkbox"
-                  checked={options.ocrLanguages.includes(lang.value)}
-                  onChange={() => toggleOcrLanguage(lang.value)}
+                  checked={options.ocrLanguages.includes(language.value)}
+                  onChange={() => toggleOcrLanguage(language.value)}
                   disabled={disabled}
                   className="size-4 rounded border-input text-primary focus:ring-ring"
                 />
-                {lang.label}
+                {language.label}
               </label>
             ))}
           </fieldset>

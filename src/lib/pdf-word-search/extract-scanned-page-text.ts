@@ -1,5 +1,9 @@
 import type { PdfPageText } from "./types";
 
+type OcrWorker = {
+  recognize: (image: string) => Promise<{ data: { text: string } }>;
+};
+
 export async function extractScannedPageText(
   file: File,
   fileId: string,
@@ -7,6 +11,7 @@ export async function extractScannedPageText(
   pageNumber: number,
   ocrLanguages: string[],
   abortSignal?: AbortSignal,
+  ocrWorker?: OcrWorker,
 ): Promise<PdfPageText> {
   const pdfjsLib = await import("pdfjs-dist");
 
@@ -36,11 +41,17 @@ export async function extractScannedPageText(
 
   const imageData = canvas.toDataURL("image/png");
 
-  const Tesseract = await import("tesseract.js");
-  const langParam = ocrLanguages.join("+");
-  const result = await Tesseract.recognize(imageData, langParam, {
-    logger: () => {},
-  });
+  let result: { data: { text: string } };
+
+  if (ocrWorker) {
+    result = await ocrWorker.recognize(imageData);
+  } else {
+    const Tesseract = await import("tesseract.js");
+    const langParam = ocrLanguages.length > 0 ? ocrLanguages.join("+") : "eng";
+    result = await Tesseract.recognize(imageData, langParam, {
+      logger: () => {},
+    });
+  }
 
   canvas.remove();
 

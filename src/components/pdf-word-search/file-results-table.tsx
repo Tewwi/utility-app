@@ -21,7 +21,10 @@ export function FileResultsTable({ results }: FileResultsTableProps) {
       fileId: string;
       fileName: string;
       matches: {
+        id: string;
         term: string;
+        caseSensitive: boolean;
+        wholeWord: boolean;
         count: number;
         pages: number[];
         source: string;
@@ -39,7 +42,10 @@ export function FileResultsTable({ results }: FileResultsTableProps) {
         });
       }
       fileMap.get(fileResult.fileId)!.matches.push({
+        id: result.id,
         term: result.term,
+        caseSensitive: result.caseSensitive,
+        wholeWord: result.wholeWord,
         count: fileResult.count,
         pages: fileResult.pages,
         source: "",
@@ -109,9 +115,16 @@ export function FileResultsTable({ results }: FileResultsTableProps) {
                   </thead>
                   <tbody>
                     {entry.matches.map((match) => (
-                      <tr key={match.term} className="border-t border-border">
+                      <tr key={match.id} className="border-t border-border">
                         <td className="px-4 py-2 font-medium text-foreground">
-                          {match.term}
+                          <div>{match.term}</div>
+                          <div className="mt-0.5 text-[11px] font-normal text-muted-foreground">
+                            {match.caseSensitive
+                              ? "Case sensitive"
+                              : "Ignore case"}
+                            {" / "}
+                            {match.wholeWord ? "Whole word" : "Partial match"}
+                          </div>
                         </td>
                         <td className="px-4 py-2 text-foreground">
                           {match.count}
