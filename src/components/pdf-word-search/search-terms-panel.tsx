@@ -33,14 +33,17 @@ export function SearchTermsPanel({
   disabled,
 }: SearchTermsPanelProps) {
   const languages = [
-    { value: "eng", label: "English" },
     { value: "vie", label: "Vietnamese" },
+    { value: "eng", label: "English" },
   ];
 
   function toggleOcrLanguage(language: string) {
-    const nextLanguages = options.ocrLanguages.includes(language)
+    const isSelected = options.ocrLanguages.includes(language);
+    const nextLanguages = isSelected
       ? options.ocrLanguages.filter((item) => item !== language)
       : [...options.ocrLanguages, language];
+
+    if (nextLanguages.length === 0) return;
 
     onOptionsChange({ ...options, ocrLanguages: nextLanguages });
   }
@@ -184,7 +187,11 @@ export function SearchTermsPanel({
                   type="checkbox"
                   checked={options.ocrLanguages.includes(language.value)}
                   onChange={() => toggleOcrLanguage(language.value)}
-                  disabled={disabled}
+                  disabled={
+                    disabled ||
+                    (options.ocrLanguages.length === 1 &&
+                      options.ocrLanguages.includes(language.value))
+                  }
                   className="size-4 rounded border-input text-primary focus:ring-ring"
                 />
                 {language.label}

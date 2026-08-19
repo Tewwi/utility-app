@@ -1,4 +1,6 @@
 import type { PdfPageText } from "./types";
+import { configurePdfJsLib } from "./configure-pdf-js-lib";
+import { createPdfDocumentLoadOptions } from "./create-pdf-document-load-options";
 
 type OcrWorker = {
   recognize: (image: string) => Promise<{ data: { text: string } }>;
@@ -14,6 +16,7 @@ export async function extractScannedPageText(
   ocrWorker?: OcrWorker,
 ): Promise<PdfPageText> {
   const pdfjsLib = await import("pdfjs-dist");
+  configurePdfJsLib(pdfjsLib);
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -21,7 +24,9 @@ export async function extractScannedPageText(
   ).href;
 
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument(
+    createPdfDocumentLoadOptions(arrayBuffer),
+  ).promise;
 
   if (abortSignal?.aborted) throw new DOMException("Aborted", "AbortError");
 

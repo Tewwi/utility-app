@@ -43,8 +43,8 @@ export function usePdfWordSearch() {
     () => [createSearchTermGroup()],
   );
   const [options, setOptions] = useState<PdfWordSearchOptions>({
-    enableOcr: false,
-    ocrLanguages: ["eng"],
+    enableOcr: true,
+    ocrLanguages: ["vie", "eng"],
   });
   const [progress, setProgress] = useState<ProcessingState>({
     isProcessing: false,
@@ -391,8 +391,8 @@ export function usePdfWordSearch() {
     setFiles([]);
     setSearchTermGroups([createSearchTermGroup()]);
     setOptions({
-      enableOcr: false,
-      ocrLanguages: ["eng"],
+      enableOcr: true,
+      ocrLanguages: ["vie", "eng"],
     });
     setProgress({ isProcessing: false, files: [] });
     setResults([]);
